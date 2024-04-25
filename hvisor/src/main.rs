@@ -17,12 +17,13 @@
 use core::{arch::global_asm, mem};
 
 use fdt::Fdt;
-
+#[cfg(feature = "plic")]
+use crate::arch::riscv::plic::{self, init_plic};
 use crate::{
     arch::riscv::{
         cpu,
-        csr::*,
-        plic::{self, init_plic},
+        csr::*
+        // plic::{self, init_plic},
     },
     config::*,
     consts::{HV_PHY_BASE, MAX_CPU_NUM},
@@ -31,6 +32,8 @@ use crate::{
     percpu::PerCpu,
     zone::zone_create,
 };
+#[cfg(feature = "aia")]
+use crate::arch::riscv::aplic::{init_aplic, host_aplic};
 use core::sync::atomic::{AtomicI32, AtomicU32, Ordering};
 #[macro_use]
 extern crate log;
@@ -104,23 +107,22 @@ fn primary_init_early(dtb: usize) -> HvResult {
     memory::frame::frame_allocator_test();
     info!("host dtb: {:#x}", dtb);
     let host_fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8) }.unwrap();
-    let hcpu = host_fdt
-        .cpus()
-        .next()
-        .unwrap()
-        .properties()
-        .find(|p| p.name == "riscv,isa")
-        .unwrap();
-    println!("host cpu riscv,isa: {:#?}", hcpu.as_str());
-    if hcpu.as_str().unwrap().contains("sstc") {
-        println!("host cpu support sstc");
+    // memory::init_hv_page_table(host_fdt).unwrap();
+    #[cfg(feature = "plic")]{
+        let plic_info = host_fdt.find_node("/soc/plic").unwrap();
+        init_plic(
+            plic_info.reg().unwrap().next().unwrap().starting_address as usize,
+            plic_info.reg().unwrap().next().unwrap().size.unwrap(),
+        );
     }
-    memory::init_hv_page_table(host_fdt).unwrap();
-    let plic_info = host_fdt.find_node("/soc/plic").unwrap();
-    init_plic(
-        plic_info.reg().unwrap().next().unwrap().starting_address as usize,
-        plic_info.reg().unwrap().next().unwrap().size.unwrap(),
-    );
+    #[cfg(feature = "aia")]{
+        let aplic_info = host_fdt.find_node("/soc/aplic").unwrap();
+        init_aplic(
+            aplic_info.reg().unwrap().next().unwrap().starting_address as usize,
+            aplic_info.reg().unwrap().next().unwrap().size.unwrap(),
+        );
+    }
+
     for vmid in 0..GUESTS.len() {
         info!(
             "guest{} addr: {:#x}, dtb addr: {:#x}",
@@ -131,6 +133,7 @@ fn primary_init_early(dtb: usize) -> HvResult {
         let vm_paddr_start: usize = GUESTS[vmid].0.as_ptr() as usize;
         zone_create(vmid, vm_paddr_start, GUESTS[vmid].1.as_ptr(), DTB_ADDR);
     }
+
     INIT_EARLY_OK.store(1, Ordering::Release);
     Ok(())
 }
@@ -145,7 +148,7 @@ fn per_cpu_init(cpu: &mut PerCpu) {
         warn!("zone is not created for cpu {}", cpu.id);
     } else {
         unsafe {
-            memory::hv_page_table().read().activate();
+            // memory::hv_page_table().read().activate();
             cpu.zone.clone().unwrap().read().gpm_activate();
         };
     }
@@ -181,7 +184,7 @@ pub fn rust_main(cpuid: usize, host_dtb: usize) -> () {
         if is_primary { "Primary" } else { "Secondary" },
         cpuid
     );
-
+    
     if is_primary {
         primary_init_early(host_dtb); // create root cell here
     } else {
@@ -200,5 +203,7 @@ pub fn rust_main(cpuid: usize, host_dtb: usize) -> () {
     }
     let sie = read_csr!(CSR_SIE);
     println!("CPU{} sie: {:#x}", cpuid, sie);
+    // #[cfg(feature = "aia")]
+    // crate::arch::riscv::imsic::imsic_init();
     cpu.run_vm();
 }

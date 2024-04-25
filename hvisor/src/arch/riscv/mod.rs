@@ -1,6 +1,9 @@
 pub mod cpu;
 pub mod csr;
+#[cfg(feature = "plic")]
 pub mod plic;
+#[cfg(feature = "aia")]
+pub mod aplic;
 pub mod s1pt;
 pub mod s2pt;
 pub mod sbi;

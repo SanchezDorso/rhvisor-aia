@@ -1,8 +1,15 @@
 use super::cpu::ArchCpu;
+#[cfg(feature = "plic")]
 use super::plic::PLIC;
 use super::sbi::sbi_vs_handler;
+#[cfg(feature = "plic")]
 use crate::arch::riscv::plic::{host_plic, PLIC_GLOBAL_SIZE, PLIC_TOTAL_SIZE};
+#[cfg(feature = "plic")]
 use crate::arch::riscv::plic::{vplic_global_emul_handler, vplic_hart_emul_handler};
+#[cfg(feature = "aia")]
+// use crate::arch::riscv::imsic::{PrivMode, imsic_handle, imsic_pop};
+#[cfg(feature = "aia")]
+use crate::arch::riscv::aplic::{host_aplic, vaplic_emul_handler};
 use crate::arch::riscv::timer::{get_time, set_next_trigger};
 use crate::arch::riscv::{csr::*, trap};
 use crate::memory::{GuestPhysAddr, HostPhysAddr};
@@ -88,39 +95,73 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
 }
 pub fn guest_page_fault_handler(current_cpu: &mut ArchCpu) {
     let addr: HostPhysAddr = read_csr!(CSR_HTVAL) << 2;
-    trace!("guest page fault at {:#x}", addr);
-    let host_plic_base = host_plic().read().base;
-    //TODO: get plic addr range from dtb or vpliv object
-    if addr >= host_plic_base && addr < host_plic_base + PLIC_TOTAL_SIZE {
-        trace!("PLIC access");
-        let mut inst: u32 = read_csr!(CSR_HTINST) as u32;
-        if inst == 0 {
-            let inst_addr: GuestPhysAddr = current_cpu.sepc;
-            //load real ins from guest memmory
-            inst = read_inst(inst_addr);
-        } else if inst == 0x3020 || inst == 0x3000 {
-            // TODO: we should reinject this in the guest as a fault access
-            error!("fault on 1st stage page table walk");
-        } else {
-            // If htinst is valid and is not a pseudo instructon make sure
-            // the opcode is valid even if it was a compressed instruction,
-            // but before save the real instruction size.
-            error!("unhandled guest page fault at {:#x}", addr);
-        }
-        //TODO: decode inst to real instruction
-        let (len, inst) = decode_inst(inst);
-        if let Some(inst) = inst {
-            if addr >= host_plic_base + PLIC_GLOBAL_SIZE {
-                vplic_hart_emul_handler(current_cpu, addr, inst);
+    debug!("guest page fault at {:#x}", addr);
+    #[cfg(feature = "plic")]{
+        let host_plic_base = host_plic().read().base;
+        //TODO: get plic addr range from dtb or vpliv object
+        if addr >= host_plic_base && addr < host_plic_base + PLIC_TOTAL_SIZE {
+            trace!("PLIC access");
+            let mut inst: u32 = read_csr!(CSR_HTINST) as u32;
+            if inst == 0 {
+                let inst_addr: GuestPhysAddr = current_cpu.sepc;
+                //load real ins from guest memmory
+                inst = read_inst(inst_addr);
+            } else if inst == 0x3020 || inst == 0x3000 {
+                // TODO: we should reinject this in the guest as a fault access
+                error!("fault on 1st stage page table walk");
             } else {
-                vplic_global_emul_handler(current_cpu, addr, inst);
+                // If htinst is valid and is not a pseudo instructon make sure
+                // the opcode is valid even if it was a compressed instruction,
+                // but before save the real instruction size.
+                error!("unhandled guest page fault at {:#x}", addr);
             }
-            current_cpu.sepc += len;
+            //TODO: decode inst to real instruction
+            let (len, inst) = decode_inst(inst);
+            if let Some(inst) = inst {
+                if addr >= host_plic_base + PLIC_GLOBAL_SIZE {
+                    vplic_hart_emul_handler(current_cpu, addr, inst);
+                } else {
+                    vplic_global_emul_handler(current_cpu, addr, inst);
+                }
+                current_cpu.sepc += len;
+            } else {
+                error!("Invalid instruction at {:#x}", current_cpu.sepc);
+            }
         } else {
-            error!("Invalid instruction at {:#x}", current_cpu.sepc);
+            panic!("CPU {} unmaped memmory at {:#x}", current_cpu.hartid, addr);
         }
-    } else {
-        panic!("CPU {} unmaped memmory at {:#x}", current_cpu.hartid, addr);
+    }
+    #[cfg(feature = "aia")]{
+        let host_aplic_base = host_aplic().read().base;
+        let host_aplic_size = host_aplic().read().size;
+    
+        if addr >= host_aplic_base && addr < host_aplic_base + host_aplic_size {
+            trace!("APLIC access");
+            let mut inst: u32 = read_csr!(CSR_HTINST) as u32;
+            let mut ins_size: usize = 0;
+            if inst == 0 {
+                let inst_addr: GuestPhysAddr = current_cpu.sepc;
+                inst = read_inst(inst_addr);
+                ins_size = if inst & 0x3 == 3 { 4 } else { 2 };
+            } else if inst == 0x3020 || inst == 0x3000 {
+                error!("fault on 1st stage page table walk");
+            } else {
+                ins_size = if (inst) & 0x2 == 0 { 2 } else { 4 };
+                inst = inst | 0b10;
+                // error!("unhandled guest page fault at {:#x}", addr);
+            }
+            // let (len, inst) = decode_inst(inst);
+            let (_, inst) = decode_inst(inst); 
+            
+            if let Some(inst) = inst {
+                vaplic_emul_handler(current_cpu, addr, inst);
+                current_cpu.sepc += ins_size;
+            } else {
+                error!("Invalid instruction at {:#x}", current_cpu.sepc);
+            }
+        } else {
+            panic!("CPU {} unmaped memmory at {:#x}", current_cpu.hartid, addr);
+        }
     }
 }
 fn read_inst(addr: GuestPhysAddr) -> u32 {
@@ -168,8 +209,6 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
     trace!("CSR_SCAUSE: {:#x}", trap_code);
     match trap_code & 0xfff {
         InterruptType::STI => {
-            current_cpu.sti += 1;
-            trace!("STI {} on CPU{}", current_cpu.sti, current_cpu.hartid);
             trace!("STI on CPU{}", current_cpu.hartid);
             unsafe {
                 hvip::set_vstip();
@@ -179,14 +218,10 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
             trace!("sie {:#x}", read_csr!(CSR_SIE));
         }
         InterruptType::SSI => {
-            current_cpu.ssi += 1;
-            trace!("SSI {} on CPU{}", current_cpu.ssi, current_cpu.hartid);
             trace!("SSI on CPU {}", current_cpu.hartid);
             handle_ssi(current_cpu);
         }
         InterruptType::SEI => {
-            current_cpu.sei += 1;
-            trace!("SEI {} on CPU{}", current_cpu.sei, current_cpu.hartid);
             debug!("SEI on CPU {}", current_cpu.hartid);
             handle_eirq(current_cpu)
         }
@@ -202,21 +237,25 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
 
 /// handle interrupt request(current only external interrupt)
 pub fn handle_eirq(current_cpu: &mut ArchCpu) {
-    // TODO: handle other irq
-    // check external interrupt && handle
-    // sifive plic: context0=>cpu0,M mode,context1=>cpu0,S mode...
-    let context_id = 2 * current_cpu.hartid + 1;
-    let mut host_plic = host_plic();
-    let claim_and_complete_addr =
-        host_plic.read().base + PLIC_GLOBAL_SIZE + 0x1000 * context_id + 0x4;
-    let mut irq = unsafe { core::ptr::read_volatile(claim_and_complete_addr as *const u32) };
-    debug!(
-        "CPU{} get external irq{}@{:#x}",
-        current_cpu.hartid, irq, claim_and_complete_addr
-    );
-    host_plic.write().claim_complete[context_id] = irq;
-    // set external interrupt pending, which trigger guest interrupt
-    unsafe { hvip::set_vseip() };
+    #[cfg(feature = "plic")]{
+        // TODO: handle other irq
+        // check external interrupt && handle
+        // sifive plic: context0=>cpu0,M mode,context1=>cpu0,S mode...
+        let context_id = 2 * current_cpu.hartid + 1;
+        let mut host_plic = host_plic();
+        let claim_and_complete_addr =
+            host_plic.read().base + PLIC_GLOBAL_SIZE + 0x1000 * context_id + 0x4;
+        let mut irq = unsafe { core::ptr::read_volatile(claim_and_complete_addr as *const u32) };
+        debug!(
+            "CPU{} get external irq{}@{:#x}",
+            current_cpu.hartid, irq, claim_and_complete_addr
+        );
+        host_plic.write().claim_complete[context_id] = irq;
+        // set external interrupt pending, which trigger guest interrupt
+        unsafe { hvip::set_vseip() };
+    }
+    #[cfg(feature = "aia")]{
+    }
 }
 pub fn handle_ssi(current_cpu: &mut ArchCpu) {
     let sip = read_csr!(CSR_SIP);

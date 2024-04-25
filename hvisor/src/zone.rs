@@ -6,6 +6,7 @@ use crate::memory::{GuestPhysAddr, HostPhysAddr, MemFlags, MemoryRegion, MemoryS
 use crate::percpu::get_cpu_data;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use crate::consts::PAGE_SIZE;
 use core::char::{decode_utf16, MAX};
 use core::mem::{self};
 use spin::RwLock;
@@ -128,7 +129,7 @@ impl Zone {
         }
 
         // probe uart device
-        for node in fdt.find_all_nodes("/soc/uart") {
+        for node in fdt.find_all_nodes("/soc/serial") {
             if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
                 let paddr = reg.starting_address as HostPhysAddr;
                 let size = align_up(reg.size.unwrap());
@@ -173,12 +174,36 @@ impl Zone {
         //         ))?;
         //     }
         // }
+        let paddr = 0x2800_0000 as HostPhysAddr;
+        let size = PAGE_SIZE;
+        self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+            paddr as GuestPhysAddr,
+            paddr + PAGE_SIZE * 1,
+            size,
+            MemFlags::READ | MemFlags::WRITE,
+        ))?;
 
+
+
+        // for node in fdt.find_all_nodes("/soc/imsics") {
+        //     if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+        //         let paddr = reg.starting_address as HostPhysAddr;
+        //         let size = reg.size.unwrap();
+        //         info!("map imsics addr: {:#x}, size: {:#x}", paddr, size);
+        //         self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+        //             paddr as GuestPhysAddr,
+        //             paddr,
+        //             size,
+        //             MemFlags::READ | MemFlags::WRITE,
+        //         ))?;
+        //     }
+        // }
+        
         for node in fdt.find_all_nodes("/soc/pci") {
             if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
                 let paddr = reg.starting_address as HostPhysAddr;
                 let size = reg.size.unwrap();
-                println!("map pci addr: {:#x}, size: {:#x}", paddr, size);
+                info!("map pci addr: {:#x}, size: {:#x}", paddr, size);
                 self.gpm.insert(MemoryRegion::new_with_offset_mapper(
                     paddr as GuestPhysAddr,
                     paddr,
@@ -234,17 +259,6 @@ pub fn zone_create(
             info!("set cpu{} first_cpu{}", cpuid, cpu_set.first_cpu().unwrap());
             cpu_data.arch_cpu.first_cpu = cpu_set.first_cpu().unwrap();
             cpu_data.cpu_on_entry = guest_entry;
-            let cpu_isa = guest_fdt
-                .cpus()
-                .find(|cpu| cpu.ids().all().next().unwrap() == cpuid)
-                .unwrap()
-                .properties()
-                .find(|p| p.name == "riscv,isa")
-                .unwrap();
-            if cpu_isa.as_str().unwrap().contains("sstc") {
-                println!("cpu{} support sstc", cpuid);
-                cpu_data.arch_cpu.sstc = true;
-            }
         });
     }
     {}
