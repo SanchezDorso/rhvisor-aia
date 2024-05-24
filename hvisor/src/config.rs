@@ -24,19 +24,45 @@ pub const DTB_ADDR: usize = 0xbfe00000;
 // /// the guest kernel file
 // pub static GUEST2: [u8; include_bytes!("../../guests/Image-62U").len()] =
 //     *include_bytes!("../../guests/Image-62U");
+#[cfg(feature = "plic")]
+#[link_section = ".dtb1"]
+/// the guest dtb file
+pub static GUEST1_DTB: [u8; include_bytes!("../../guests/linux3.dtb").len()] =
+    *include_bytes!("../../guests/linux3.dtb");
+#[cfg(feature = "plic")]
+#[link_section = ".img1"]
+/// the guest kernel file
+pub static GUEST1: [u8; include_bytes!("../../guests/Image-62U").len()] =
+    *include_bytes!("../../guests/Image-62U");
 
-// #[link_section = ".dtb1"]
-// /// the guest dtb file
-// pub static GUEST1_DTB: [u8; include_bytes!("../../guests/linux3-aia.dtb").len()] =
-//     *include_bytes!("../../guests/linux3-aia.dtb");
-// #[link_section = ".img1"]
-// /// the guest kernel file
-// pub static GUEST1: [u8; include_bytes!("../../guests/Image-aia").len()] =
-//     *include_bytes!("../../guests/Image-aia");
+#[cfg(feature = "plic")]
+#[link_section = ".dtb2"]
+/// the guest dtb file
+pub static GUEST2_DTB: [u8; include_bytes!("../../guests/linux.dtb").len()] =
+    *include_bytes!("../../guests/linux.dtb");
+#[cfg(feature = "plic")]
+#[link_section = ".img2"]
+/// the guest kernel file
+pub static GUEST2: [u8; include_bytes!("../../guests/Image-62U").len()] =
+    *include_bytes!("../../guests/Image-62U");
+
+#[cfg(feature = "aia")]
+#[link_section = ".dtb1"]
+/// the guest dtb file
+pub static GUEST1_DTB: [u8; include_bytes!("../../guests/linux3-aia.dtb").len()] =
+    *include_bytes!("../../guests/linux3-aia.dtb");
+#[cfg(feature = "aia")]
+#[link_section = ".img1"]
+/// the guest kernel file
+pub static GUEST1: [u8; include_bytes!("../../guests/Image-aia").len()] =
+    *include_bytes!("../../guests/Image-aia");
+
+#[cfg(feature = "aia")]
 #[link_section = ".dtb2"]
 /// the guest dtb file
 pub static GUEST2_DTB: [u8; include_bytes!("../../guests/linux-aia.dtb").len()] =
     *include_bytes!("../../guests/linux-aia.dtb");
+#[cfg(feature = "aia")]
 #[link_section = ".img2"]
 /// the guest kernel file
 pub static GUEST2: [u8; include_bytes!("../../guests/Image-aia").len()] =
@@ -67,5 +93,11 @@ pub static GUEST2: [u8; include_bytes!("../../guests/Image-aia").len()] =
 // pub static GUEST2: [u8; include_bytes!("../../guests/os_ch5_802.bin").len()] =
 //     *include_bytes!("../../guests/os_ch5_802.bin");
 // pub static GUESTS: [(&'static [u8], &'static [u8]); 1] = [(&GUEST2, &GUEST2_DTB)];
+#[cfg(feature = "plic")]
+pub static GUESTS: [(&'static [u8], &'static [u8]); 2] =
+    [(&GUEST1, &GUEST1_DTB), (&GUEST2, &GUEST2_DTB)];
+#[cfg(feature = "aia")]
 pub static GUESTS: [(&'static [u8], &'static [u8]); 1] =
     [(&GUEST2, &GUEST2_DTB)];
+// pub static GUESTS: [(&'static [u8], &'static [u8]); 2] =
+//     [(&GUEST1, &GUEST1_DTB), (&GUEST2, &GUEST2_DTB)];

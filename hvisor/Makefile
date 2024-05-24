@@ -10,6 +10,11 @@ ifeq ($(MODE), release)
 	MODE_ARG := --release
 endif
 
+# device tree
+DTS_FILE := ../guests/linux-aia.dts
+# features
+FEATURE := $(shell cat $(DTS_FILE) | grep -q "aplic" && echo "aia" || echo "plic")
+
 # BOARD
 BOARD := qemu
 SBI ?= rustsbi
@@ -39,7 +44,7 @@ $(KERNEL_BIN): kernel
 kernel:
 	@echo Platform: $(BOARD)
 	@cp src/linker-$(BOARD).ld src/linker.ld
-	@cargo build $(MODE_ARG)
+	@cargo build --features "$(FEATURE)" $(MODE_ARG)
 	@rm src/linker.ld
 
 clean:
@@ -54,8 +59,13 @@ run: run-inner
 
 # QEMU_ARGS := -machine virt,dumpdtb=qemu.dtb
 # QEMU_ARGS := -machine virt,aclint=on,aia=aplic-imsic,aia-guests=1,dumpdtb=qemu_aia.dtb
-QEMU_ARGS := -machine virt,aclint=on,aia=aplic-imsic,aia-guests=1
+# QEMU_ARGS := -machine virt,aclint=on,aia=aplic-imsic,aia-guests=1
 # QEMU_ARGS := -machine virt
+ifeq ($(FEATURE),aia)
+    QEMU_ARGS := -machine virt,aclint=on,aia=aplic-imsic,aia-guests=1
+else ifeq ($(FEATURE),plic)
+    QEMU_ARGS := -machine virt
+endif
 QEMU_ARGS +=-nographic 
 QEMU_ARGS +=-cpu rv64 
 QEMU_ARGS +=-m 3G 

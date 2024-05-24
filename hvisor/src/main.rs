@@ -33,7 +33,7 @@ use crate::{
     zone::zone_create,
 };
 #[cfg(feature = "aia")]
-use crate::arch::riscv::aplic::{init_aplic, host_aplic};
+use crate::arch::riscv::aplic::{init_aplic};
 use core::sync::atomic::{AtomicI32, AtomicU32, Ordering};
 #[macro_use]
 extern crate log;
