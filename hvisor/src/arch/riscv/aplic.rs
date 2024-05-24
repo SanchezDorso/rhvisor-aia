@@ -438,11 +438,11 @@ pub fn vaplic_emul_handler(
             Instruction::Sw(i) => {
                 let value = current_cpu.x[i.rs2() as usize] as u32;
                 let irq = ((offset - APLIC_TARGET_BASE) / 4) as u32 + 1;
-                let hart = (value >> 18) & 0x3F;
+                let hart = ((value >> 18) & 0x3F) + (current_cpu.first_cpu) as u32;
                 if host_aplic.read().get_msimode() {
-                    let guest = (value >> 12) & 0x3F;
+                    let guest = ((value >> 12) & 0x3F) + 1;
                     let eiid = value & 0xFFF;
-                    host_aplic.write().set_target_msi(irq, hart, 1, eiid);
+                    host_aplic.write().set_target_msi(irq, hart, guest, eiid);
                     info!(
                         "APLIC set msi target write addr@{:#x} irq {} hart {} guest {} eiid {}",
                         addr, irq, hart, guest, eiid

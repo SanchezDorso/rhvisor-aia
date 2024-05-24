@@ -102,15 +102,8 @@ soc{
 		compatible = "virtio,mmio";
 	};
 
-	uart@10000000 {
-		interrupts = <0x0a 0x04>;
-		interrupt-parent = <0x08>;
-		clock-frequency = "\08@";
-		reg = <0x00 0x10000000 0x00 0x100>;
-		compatible = "ns16550a";
-	};
 };
 	chosen {
-		bootargs = "root=/dev/vda rw earlycon console=ttyS0";
+		bootargs = "root=/dev/vda r earlycon console=hvc0";
 	};
 };

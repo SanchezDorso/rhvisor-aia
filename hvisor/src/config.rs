@@ -97,7 +97,7 @@ pub static GUEST2: [u8; include_bytes!("../../guests/Image-aia").len()] =
 pub static GUESTS: [(&'static [u8], &'static [u8]); 2] =
     [(&GUEST1, &GUEST1_DTB), (&GUEST2, &GUEST2_DTB)];
 #[cfg(feature = "aia")]
-pub static GUESTS: [(&'static [u8], &'static [u8]); 1] =
-    [(&GUEST2, &GUEST2_DTB)];
-// pub static GUESTS: [(&'static [u8], &'static [u8]); 2] =
-//     [(&GUEST1, &GUEST1_DTB), (&GUEST2, &GUEST2_DTB)];
+// pub static GUESTS: [(&'static [u8], &'static [u8]); 1] =
+//     [(&GUEST2, &GUEST2_DTB)];
+pub static GUESTS: [(&'static [u8], &'static [u8]); 2] =
+    [(&GUEST1, &GUEST1_DTB), (&GUEST2, &GUEST2_DTB)];

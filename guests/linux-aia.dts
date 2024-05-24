@@ -8,15 +8,15 @@
 		#address-cells = <0x1>;
 		#size-cells = <0x0>;
 		timebase-frequency = <10000000>;
-		cpu@0 {
+		cpu@3 {
 			device_type = "cpu";
-			reg = <0x0>;
+			reg = <0x3>;
 			status = "okay";
 			compatible = "riscv";
 			riscv,isa = "rv64imafdch_ssaia_sstc";
 			mmu-type = "riscv,sv48";
 
-			cpu0_intc: interrupt-controller {
+			cpu3_intc: interrupt-controller {
 				#interrupt-cells = <0x1>;
 				interrupt-controller;
 				compatible = "riscv,cpu-intc";
@@ -50,7 +50,7 @@ soc{
 		riscv,num-ids = <0xff>;
 		reg = <0x00 0x28000000 0x00 0x4000>;
 		interrupts-extended = <
-			&cpu0_intc 9
+			&cpu3_intc 9
 		>;
 		msi-controller;
 		interrupt-controller;
@@ -59,48 +59,48 @@ soc{
 	};
 
 	virtio_mmio@10006000 {
-		interrupts = <0x6 &cpu0_intc>;
+		interrupts = <0x6 &cpu3_intc>;
 		interrupt-parent = <0x08>;
 		reg = <0x0 0x10006000 0x0 0x1000>;
 		compatible = "virtio,mmio";
 	};
 
 	virtio_mmio@10005000 {
-		interrupts = <0x5 &cpu0_intc>;
+		interrupts = <0x5 &cpu3_intc>;
 		interrupt-parent = <0x08>;
 		reg = <0x0 0x10005000 0x0 0x1000>;
 		compatible = "virtio,mmio";
 	};
 
 	virtio_mmio@10004000 {
-		interrupts = <0x4 &cpu0_intc>;
+		interrupts = <0x4 &cpu3_intc>;
 		interrupt-parent = <0x08>;
 		reg = <0x0 0x10004000 0x0 0x1000>;
 		compatible = "virtio,mmio";
 	};
 
 	virtio_mmio@10003000 {
-		interrupts = <0x3 &cpu0_intc>;
+		interrupts = <0x3 &cpu3_intc>;
 		interrupt-parent = <0x08>;
 		reg = <0x0 0x10003000 0x0 0x1000>;
 		compatible = "virtio,mmio";
 	};
 
 	virtio_mmio@10002000 {
-		interrupts = <0x2 &cpu0_intc>;
+		interrupts = <0x2 &cpu3_intc>;
 		interrupt-parent = <0x08>;
 		reg = <0x0 0x10002000 0x0 0x1000>;
 		compatible = "virtio,mmio";
 	};
 
 	virtio_mmio@10001000 {
-		interrupts = <0x1 &cpu0_intc>;
+		interrupts = <0x1 &cpu3_intc>;
 		interrupt-parent = <0x08>;
 		reg = <0x0 0x10001000 0x0 0x1000>;
 		compatible = "virtio,mmio";
 	};
 	uart@10000000 {
-		interrupts = <0x0a &cpu0_intc>;
+		interrupts = <0x0a &cpu3_intc>;
 		interrupt-parent = <0x08>;
 		clock-frequency = "\08@";
 		reg = <0x00 0x10000000 0x00 0x100>;
