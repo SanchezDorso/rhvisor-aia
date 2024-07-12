@@ -1,7 +1,6 @@
 # rhvisor
+plic:
+make run IRQ=plic LOG=WARN
 
-make run ARCH=riscv64
-# 中断虚拟化模块（李韶航）
-中断的话需要讲清楚整个中断处理的流程，从中断的触发开始，中断有哪些来源、可以分为几种类型。
-中断触发之后，每种类型具体是怎么被处理的。特别注意时钟中断的处理，需要结合相关的sbi。
-然后是中断控制器的模拟，具体是怎么进行模拟的，当虚拟机管理中断时，涉及到哪些行为（enable、claim等等），这些行为具体是怎么被hvisor模拟的。
+aia:
+make run IRQ=aia
