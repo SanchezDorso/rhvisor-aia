@@ -66,10 +66,10 @@ bitflags! {
     }
 }
 
-#[cfg(feature = "plic")]
+// #[cfg(feature = "plic")]
 /// Page table used for hypervisor.
 static HV_PT: Once<RwLock<MemorySet<Stage1PageTable>>> = Once::new();
-#[cfg(feature = "plic")]
+// #[cfg(feature = "plic")]
 pub fn hv_page_table<'a>() -> &'a RwLock<MemorySet<Stage1PageTable>> {
     HV_PT.get().expect("Uninitialized hypervisor page table!")
 }
@@ -79,7 +79,7 @@ pub fn init_heap() {
 pub fn init_frame_allocator() {
     frame::init();
 }
-#[cfg(feature = "plic")]
+// #[cfg(feature = "plic")]
 pub fn init_hv_page_table(fdt: fdt::Fdt) -> HvResult {
     let mut hv_pt: MemorySet<Stage1PageTable> = MemorySet::new();
     // let _ = hv_pt.insert(MemoryRegion::new_with_offset_mapper(

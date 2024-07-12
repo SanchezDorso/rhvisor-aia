@@ -32,8 +32,8 @@ pub static GUEST1_DTB: [u8; include_bytes!("../../guests/linux3.dtb").len()] =
 #[cfg(feature = "plic")]
 #[link_section = ".img1"]
 /// the guest kernel file
-pub static GUEST1: [u8; include_bytes!("../../guests/Image-62U").len()] =
-    *include_bytes!("../../guests/Image-62U");
+pub static GUEST1: [u8; include_bytes!("../../guests/img/Image").len()] =
+    *include_bytes!("../../guests/img/Image");
 
 #[cfg(feature = "plic")]
 #[link_section = ".dtb2"]
@@ -43,8 +43,8 @@ pub static GUEST2_DTB: [u8; include_bytes!("../../guests/linux.dtb").len()] =
 #[cfg(feature = "plic")]
 #[link_section = ".img2"]
 /// the guest kernel file
-pub static GUEST2: [u8; include_bytes!("../../guests/Image-62U").len()] =
-    *include_bytes!("../../guests/Image-62U");
+pub static GUEST2: [u8; include_bytes!("../../guests/img/Image").len()] =
+    *include_bytes!("../../guests/img/Image");
 
 #[cfg(feature = "aia")]
 #[link_section = ".dtb1"]
@@ -54,8 +54,8 @@ pub static GUEST1_DTB: [u8; include_bytes!("../../guests/linux3-aia.dtb").len()]
 #[cfg(feature = "aia")]
 #[link_section = ".img1"]
 /// the guest kernel file
-pub static GUEST1: [u8; include_bytes!("../../guests/Image-aia").len()] =
-    *include_bytes!("../../guests/Image-aia");
+pub static GUEST1: [u8; include_bytes!("../../guests/img/Image-aia").len()] =
+    *include_bytes!("../../guests/img/Image-aia");
 
 #[cfg(feature = "aia")]
 #[link_section = ".dtb2"]
@@ -65,8 +65,8 @@ pub static GUEST2_DTB: [u8; include_bytes!("../../guests/linux-aia.dtb").len()] 
 #[cfg(feature = "aia")]
 #[link_section = ".img2"]
 /// the guest kernel file
-pub static GUEST2: [u8; include_bytes!("../../guests/Image-aia").len()] =
-    *include_bytes!("../../guests/Image-aia");
+pub static GUEST2: [u8; include_bytes!("../../guests/img/Image-aia").len()] =
+    *include_bytes!("../../guests/img/Image-aia");
 
 // #[link_section = ".dtb"]
 // /// the guest dtb file

@@ -1,3 +1,5 @@
+IRQ ?= plic
+
 # Building
 TARGET := riscv64gc-unknown-none-elf
 MODE := debug
@@ -9,11 +11,6 @@ export LOG
 ifeq ($(MODE), release)
 	MODE_ARG := --release
 endif
-
-# device tree
-DTS_FILE := ../guests/linux-aia.dts
-# features
-FEATURE := $(shell cat $(DTS_FILE) | grep -q "aplic" && echo "aia" || echo "plic")
 
 # BOARD
 BOARD := qemu
@@ -44,7 +41,7 @@ $(KERNEL_BIN): kernel
 kernel:
 	@echo Platform: $(BOARD)
 	@cp src/linker-$(BOARD).ld src/linker.ld
-	@cargo build --features "$(FEATURE)" $(MODE_ARG)
+	@cargo build --features "$(IRQ)" $(MODE_ARG)
 	@rm src/linker.ld
 
 clean:
@@ -61,9 +58,9 @@ run: run-inner
 # QEMU_ARGS := -machine virt,aclint=on,aia=aplic-imsic,aia-guests=1,dumpdtb=qemu_aia.dtb
 # QEMU_ARGS := -machine virt,aclint=on,aia=aplic-imsic,aia-guests=1
 # QEMU_ARGS := -machine virt
-ifeq ($(FEATURE),aia)
-    QEMU_ARGS := -machine virt,aclint=on,aia=aplic-imsic,aia-guests=1
-else ifeq ($(FEATURE),plic)
+ifeq ($(IRQ),aia)
+    QEMU_ARGS := -machine virt,aia=aplic-imsic,aia-guests=1
+else ifeq ($(IRQ),plic)
     QEMU_ARGS := -machine virt
 endif
 QEMU_ARGS +=-nographic 

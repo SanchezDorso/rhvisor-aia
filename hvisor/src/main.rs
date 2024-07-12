@@ -107,7 +107,7 @@ fn primary_init_early(dtb: usize) -> HvResult {
     memory::frame::frame_allocator_test();
     info!("host dtb: {:#x}", dtb);
     let host_fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8) }.unwrap();
-    // memory::init_hv_page_table(host_fdt).unwrap();
+    memory::init_hv_page_table(host_fdt).unwrap();
     #[cfg(feature = "plic")]{
         let plic_info = host_fdt.find_node("/soc/plic").unwrap();
         init_plic(
